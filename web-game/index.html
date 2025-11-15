@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memory Match - Puzzle Game</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Main Container -->
+    <div id="app" class="app-container">
+        
+        <!-- Title Screen -->
+        <div id="titleScreen" class="screen title-screen active">
+            <div class="screen-content">
+                <h1 class="game-title">Memory Match</h1>
+                
+                <div class="instructions">
+                    <p>Find all matching pairs to win!</p>
+                    <ul>
+                        <li>Click tiles to reveal their symbols</li>
+                        <li>Match all pairs to complete the puzzle</li>
+                        <li>Try to use the minimum number of moves</li>
+                    </ul>
+                </div>
+                
+                <div class="difficulty-selector">
+                    <label for="difficulty">Select Difficulty:</label>
+                    <select id="difficulty">
+                        <option value="easy">Easy (4×4 - 8 pairs)</option>
+                        <option value="medium" selected>Medium (5×5 - 12 pairs)</option>
+                        <option value="hard">Hard (6×6 - 18 pairs)</option>
+                    </select>
+                </div>
+                
+                <button id="startBtn" class="btn btn-primary btn-large">Start Game</button>
+            </div>
+        </div>
+        
+        <!-- Game Screen -->
+        <div id="gameScreen" class="screen game-screen">
+            <div class="game-header">
+                <h2 class="game-subtitle">Memory Match</h2>
+                <div class="game-stats">
+                    <div class="stat">
+                        <span class="stat-label">Moves:</span>
+                        <span id="moveCount" class="stat-value">0</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">Pairs:</span>
+                        <span id="pairCount" class="stat-value">0 / 8</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">Time:</span>
+                        <span id="timeCount" class="stat-value">0s</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="game-board-container">
+                <div id="gameBoard" class="game-board">
+                    <!-- Tiles will be generated here by JavaScript -->
+                </div>
+            </div>
+            
+            <button id="quitBtn" class="btn btn-secondary">Quit Game</button>
+        </div>
+        
+        <!-- Win Screen -->
+        <div id="winScreen" class="screen win-screen">
+            <div class="screen-content">
+                <h1 class="win-title">🎉 You Won! 🎉</h1>
+                
+                <div class="win-stats">
+                    <p><span class="stat-label">Total Moves:</span> <span id="finalMoves" class="stat-value">0</span></p>
+                    <p><span class="stat-label">Total Time:</span> <span id="finalTime" class="stat-value">0s</span></p>
+                    <p><span class="stat-label">Pairs Matched:</span> <span id="finalPairs" class="stat-value">0</span></p>
+                </div>
+                
+                <div class="performance-rating" id="performanceRating"></div>
+                
+                <div class="button-group">
+                    <button id="playAgainBtn" class="btn btn-primary btn-large">Play Again</button>
+                    <button id="homeBtn" class="btn btn-secondary">Back to Home</button>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+
+    <!-- Audio Elements (for sound effects) -->
+    <div id="audioContainer" class="hidden">
+        <audio id="clickSound" preload="auto">
+            <source src="assets/sounds/click.mp3" type="audio/mpeg">
+        </audio>
+        <audio id="matchSound" preload="auto">
+            <source src="assets/sounds/match.mp3" type="audio/mpeg">
+        </audio>
+        <audio id="winSound" preload="auto">
+            <source src="assets/sounds/win.mp3" type="audio/mpeg">
+        </audio>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

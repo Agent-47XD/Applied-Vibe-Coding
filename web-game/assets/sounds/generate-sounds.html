@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Sound Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+        }
+        p {
+            color: #666;
+            line-height: 1.6;
+        }
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #2980b9;
+        }
+        .button-group {
+            margin: 20px 0;
+        }
+        audio {
+            display: block;
+            margin: 10px 0;
+            width: 100%;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            background: #e8f5e9;
+            color: #2e7d32;
+            display: none;
+        }
+        .status.show {
+            display: block;
+        }
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔊 Game Sound Generator</h1>
+        
+        <p>This tool generates the sound effects needed for the Memory Match game.</p>
+        
+        <h2>Generate Sounds</h2>
+        <p>Click the buttons below to generate and download sound files:</p>
+        
+        <div class="button-group">
+            <button onclick="generateAndPlayClick()">🔊 Generate & Play Click Sound</button>
+            <button onclick="generateAndPlayMatch()">🔊 Generate & Play Match Sound</button>
+            <button onclick="generateAndPlayWin()">🔊 Generate & Play Win Sound</button>
+        </div>
+        
+        <div class="button-group">
+            <button onclick="downloadAllSounds()">💾 Download All Sounds as ZIP</button>
+            <button onclick="downloadClickWAV()">💾 Download Click Sound (WAV)</button>
+            <button onclick="downloadMatchWAV()">💾 Download Match Sound (WAV)</button>
+            <button onclick="downloadWinWAV()">💾 Download Win Sound (WAV)</button>
+        </div>
+        
+        <div class="status" id="status"></div>
+        
+        <h2>Instructions</h2>
+        <ol>
+            <li>Click "Generate & Play" buttons to hear the sounds</li>
+            <li>Click "Download" buttons to save sound files to your computer</li>
+            <li>Place downloaded files in the <code>assets/sounds/</code> folder</li>
+            <li>Refresh the game page - sounds will now work!</li>
+        </ol>
+        
+        <h2>Supported Formats</h2>
+        <p>The game supports:</p>
+        <ul>
+            <li>MP3 (.mp3) - Best for small file sizes</li>
+            <li>WAV (.wav) - Best for quality</li>
+            <li>OGG (.ogg) - Good balance</li>
+        </ul>
+        
+        <h2>Alternative: Use Online Sound Effects</h2>
+        <p>If you prefer, download sounds from free resources:</p>
+        <ul>
+            <li><a href="https://freesound.org" target="_blank">Freesound.org</a> - Free sound effects</li>
+            <li><a href="https://pixabay.com/sound-effects/" target="_blank">Pixabay Sound Effects</a></li>
+            <li><a href="https://www.zapsplat.com" target="_blank">Zapsplat</a> - Free sound library</li>
+        </ul>
+    </div>
+
+    <script>
+        // ============================================
+        // Audio Context and Offline Audio Rendering
+        // ============================================
+
+        /**
+         * Generate raw PCM audio data for a sound
+         */
+        function generateAudioData(frequencies, duration = 0.2, sampleRate = 44100) {
+            const audioBuffer = new Float32Array(sampleRate * duration);
+            const now = 0;
+
+            if (!Array.isArray(frequencies)) {
+                frequencies = [frequencies];
+            }
+
+            frequencies.forEach((freq, index) => {
+                const freqDuration = duration / frequencies.length;
+                const freqSampleStart = index * sampleRate * freqDuration;
+                const freqSampleEnd = freqSampleStart + sampleRate * freqDuration;
+
+                for (let i = freqSampleStart; i < freqSampleEnd; i++) {
+                    const sampleIndex = i - freqSampleStart;
+                    const time = sampleIndex / sampleRate;
+                    
+                    // Generate sine wave
+                    const sample = Math.sin(2 * Math.PI * freq * time);
+                    
+                    // Apply envelope (fade in/out)
+                    const envelope = Math.min(time / 0.01, 1.0) * 
+                                   Math.max(1.0 - (time - freqDuration + 0.01) / 0.01, 0.0);
+                    
+                    audioBuffer[i] = sample * envelope * 0.3;
+                }
+            });
+
+            return audioBuffer;
+        }
+
+        /**
+         * Convert PCM audio data to WAV format
+         */
+        function encodeWAV(samples, sampleRate) {
+            const buffer = new ArrayBuffer(44 + samples.length * 2);
+            const view = new DataView(buffer);
+
+            // WAV header
+            function writeString(offset, string) {
+                for (let i = 0; i < string.length; i++) {
+                    view.setUint8(offset + i, string.charCodeAt(i));
+                }
+            }
+
+            // "RIFF" chunk descriptor
+            writeString(0, 'RIFF');
+            view.setUint32(4, 36 + samples.length * 2, true);
+            writeString(8, 'WAVE');
+            
+            // "fmt " sub-chunk
+            writeString(12, 'fmt ');
+            view.setUint32(16, 16, true);
+            view.setUint16(20, 1, true); // PCM
+            view.setUint16(22, 1, true); // mono
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, sampleRate * 2, true);
+            view.setUint16(32, 2, true);
+            view.setUint16(34, 16, true);
+            
+            // "data" sub-chunk
+            writeString(36, 'data');
+            view.setUint32(40, samples.length * 2, true);
+
+            // Write samples
+            let index = 44;
+            for (let i = 0; i < samples.length; i++) {
+                view.setInt16(index, Math.max(-1, Math.min(1, samples[i])) * 0x7FFF, true);
+                index += 2;
+            }
+
+            return buffer;
+        }
+
+        /**
+         * Create and play a sound
+         */
+        function playSound(frequencies, duration = 0.2) {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const now = audioContext.currentTime;
+
+            if (!Array.isArray(frequencies)) {
+                frequencies = [frequencies];
+            }
+
+            frequencies.forEach((freq, index) => {
+                const freqDuration = duration / frequencies.length;
+                const startTime = now + index * freqDuration;
+
+                const oscillator = audioContext.createOscillator();
+                const gain = audioContext.createGain();
+
+                oscillator.type = 'sine';
+                oscillator.frequency.value = freq;
+
+                gain.gain.setValueAtTime(0.3, startTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, startTime + freqDuration);
+
+                oscillator.connect(gain);
+                gain.connect(audioContext.destination);
+
+                oscillator.start(startTime);
+                oscillator.stop(startTime + freqDuration);
+            });
+        }
+
+        /**
+         * Download a blob as a file
+         */
+        function downloadBlob(blob, filename) {
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+
+        /**
+         * Show status message
+         */
+        function showStatus(message) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.classList.add('show');
+            setTimeout(() => status.classList.remove('show'), 3000);
+        }
+
+        // ============================================
+        // Sound Generation Functions
+        // ============================================
+
+        function generateAndPlayClick() {
+            playSound(800, 0.1);
+            showStatus('✓ Click sound playing... (800 Hz)');
+        }
+
+        function generateAndPlayMatch() {
+            playSound([440, 550, 660], 0.45);
+            showStatus('✓ Match sound playing... (ascending tones)');
+        }
+
+        function generateAndPlayWin() {
+            playSound([523.25, 659.25, 783.99, 1046.50], 0.8);
+            showStatus('✓ Win sound playing... (victory fanfare)');
+        }
+
+        function downloadClickWAV() {
+            const samples = generateAudioData(800, 0.1);
+            const wavBuffer = encodeWAV(samples, 44100);
+            const blob = new Blob([wavBuffer], { type: 'audio/wav' });
+            downloadBlob(blob, 'click.wav');
+            showStatus('✓ Downloaded click.wav');
+        }
+
+        function downloadMatchWAV() {
+            const samples = generateAudioData([440, 550, 660], 0.45);
+            const wavBuffer = encodeWAV(samples, 44100);
+            const blob = new Blob([wavBuffer], { type: 'audio/wav' });
+            downloadBlob(blob, 'match.wav');
+            showStatus('✓ Downloaded match.wav');
+        }
+
+        function downloadWinWAV() {
+            const samples = generateAudioData([523.25, 659.25, 783.99, 1046.50], 0.8);
+            const wavBuffer = encodeWAV(samples, 44100);
+            const blob = new Blob([wavBuffer], { type: 'audio/wav' });
+            downloadBlob(blob, 'win.wav');
+            showStatus('✓ Downloaded win.wav');
+        }
+
+        function downloadAllSounds() {
+            showStatus('⚠ Note: ZIP download not available in browser. Download files individually.');
+        }
+
+        // Show initial message
+        window.addEventListener('load', () => {
+            showStatus('✓ Sound generator ready! Click "Generate & Play" to preview sounds.');
+        });
+    </script>
+</body>
+</html>
